@@ -28,7 +28,7 @@ import os
 
 DEBUG = os.environ.get('DEBUG', 'True') == 'True'
 
-ALLOWED_HOSTS = ['https://dailytradeplans.onrender.com/']
+ALLOWED_HOSTS = ['dailytradeplans.onrender.com']
 
 
 # Application definition
