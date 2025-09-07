@@ -92,3 +92,10 @@ class TradeProfitLoss(models.Model):
                 )
             ),
         ]
+
+
+class AccountSummary(TradeProfitLoss):
+    class Meta:
+        proxy = True
+        verbose_name = "Account summary"
+        verbose_name_plural = "Account summary"

@@ -1,4 +1,10 @@
 # trades/admin.py
+from django.contrib import admin
+from django.db.models import Sum, Count, Case, When, F, Value, DecimalField, Q
+from django.db.models.functions import TruncDay, TruncWeek, TruncMonth, TruncYear
+from django.core.serializers.json import DjangoJSONEncoder
+from django.utils import timezone
+import json
 from django.utils.safestring import mark_safe
 import requests
 from django.contrib import admin
@@ -23,17 +29,14 @@ from django.shortcuts import redirect
 from django.contrib import messages
 from django.forms import modelformset_factory
 
-from .models import TradeMaster, TradeTransaction, TradeProfitLoss
+from .models import TradeMaster, TradeTransaction, TradeProfitLoss, AccountSummary
 from .forms import (
     TradeProfitLossForm,
     TradeNewsFormSet,
     TradeTransactionFormSet,
-    TradeTransactionForm,
-    TradeTransactionFormSetPost
+    TradeTransactionForm
 )
-from django.db import transaction
 from django.contrib import messages
-from .models import TradeMaster
 
 
 # Formset for the P/L page
@@ -401,3 +404,154 @@ admin.site.register(TradeTransaction, HiddenTradeTransactionAdmin)
 #             TradeMaster.objects.values("id", "stock_name").order_by("stock_name")
 #         )  # populate Trade filter choices [14]
 #         return super().changelist_view(request, extra_context=extra_context)\
+
+
+
+
+GRAN_MAP = {
+    "day": TruncDay("updated_at"),
+    "week": TruncWeek("updated_at"),
+    "month": TruncMonth("updated_at"),
+    "year": TruncYear("updated_at"),
+}  # Trunc* for grouping periods [20]
+
+# Capital = quantity * buy_price (computed in DB)
+CAPITAL_EXPR = ExpressionWrapper(
+    F("quantity") * F("buy_price"),
+    output_field=DecimalField(max_digits=18, decimal_places=2),
+)  # expression with proper numeric type [1]
+
+def _parse_date(s: str):
+    if not s:
+        return None
+    for fmt in ("%Y-%m-%d", "%m/%d/%Y"):
+        try:
+            return datetime.strptime(s.strip(), fmt).date()
+        except ValueError:
+            pass
+    return None  # ignore invalid inputs [13]
+
+@admin.register(AccountSummary)
+class AccountSummaryAdmin(admin.ModelAdmin):
+    change_list_template = "admin/trades/accountsummary/change_list.html"  # custom top filters + charts [12]
+    list_display = ("trade", "created_by", "profit_or_loss", "profit_amount", "loss_amount", "updated_at")  # grid [12]
+
+    TX_CAPITAL_EXPR = ExpressionWrapper(F("quantity") * F("buy_price"),output_field=DecimalField(max_digits=18, decimal_places=2),)
+
+    def _capture_params(self, request):
+        # Read GET; if blank, defaulting to today is applied in get_queryset [12]
+        return {
+            "start": request.GET.get("start") or "",
+            "end":   request.GET.get("end") or "",
+            "gran":  request.GET.get("gran") or "day",
+            "kind":  request.GET.get("kind") or "",
+            "trade": request.GET.get("trade") or "",
+        }  # keep raw strings for UI and parsing [12]
+    
+
+    def changelist_view(self, request, extra_context=None):
+        params = self._capture_params(request)
+        req_copy = request.GET.copy()
+        for k in params.keys():
+            req_copy.pop(k, None)
+        request.GET = req_copy
+        request._acct_params = params
+
+        response = super().changelist_view(request, extra_context=extra_context)
+        if not hasattr(response, "context_data"):
+            return response
+
+        cl = response.context_data["cl"]
+        qs = cl.queryset  # AccountSummary grid (TradeProfitLoss proxy) [1]
+
+        # Resolve date window (default: today)
+        p = request._acct_params
+        start = _parse_date(p.get("start"))
+        end   = _parse_date(p.get("end"))
+        if not start and not end:
+            today = timezone.localdate()
+            start, end = today, today  # default to today's data [1][2]
+
+        # Build TradeTransaction queryset for charts/KPIs (user + date + optional filters)
+        tx_qs = (TradeTransaction.objects
+                .filter(created_by=request.user)
+                .filter(updated_at__date__gte=start)
+                .filter(updated_at__date__lte=end))
+        if p.get("trade"):
+            tx_qs = tx_qs.filter(trade_id=p["trade"])
+        if p.get("kind") == "profit":
+            tx_qs = tx_qs.filter(profit_or_loss="Profit")
+        elif p.get("kind") == "loss":
+            tx_qs = tx_qs.filter(profit_or_loss="Loss")
+
+        # Grouping granularity
+        gran = (p.get("gran") or "day").lower()
+        trunc = GRAN_MAP.get(gran, GRAN_MAP["day"])  # TruncDay/Week/Month/Year on updated_at [5]
+
+        # Series for charts (from TradeTransaction)
+        grouped = (tx_qs.annotate(period=trunc)
+                        .values("period")
+                        .annotate(
+                            trades=Count("id"),
+                            profit_total=Sum("profit_amount"),
+                            loss_total=Sum("loss_amount"),
+                            capital_total=Sum(self.TX_CAPITAL_EXPR),
+                        )
+                        .order_by("period"))  # [4][3]
+
+        # Overall KPIs (from TradeTransaction)
+        totals = tx_qs.aggregate(
+            trades=Count("id"),
+            profit_total=Sum("profit_amount"),
+            loss_total=Sum("loss_amount"),
+            capital_total=Sum(self.TX_CAPITAL_EXPR),
+        )  # [4][3]
+
+        # Trade dropdown from actual transactions in the active window
+        tx_trade_ids = (tx_qs.values_list("trade_id", flat=True).distinct().order_by())  # [6]
+        trade_choices = list(TradeMaster.objects.filter(id__in=tx_trade_ids)
+                            .values("id", "stock_name").order_by("stock_name"))  # [2]
+
+        response.context_data.update({
+            "series_json": json.dumps(list(grouped), cls=DjangoJSONEncoder),  # charts payload [1]
+            "totals": {k: float(v or 0) for k, v in totals.items()},          # KPI cards [4]
+            "filters": p,                                                     # refill form [7]
+            "trade_choices": trade_choices,                                   # conditional dropdown [2]
+        })
+        return response # table remains via block.super [8]
+
+    def get_queryset(self, request):
+        # Base, user-scoped dataset
+        qs = (
+            super().get_queryset(request)
+            .select_related("trade", "created_by")
+            .filter(created_by=request.user)
+        )  # only own records [12][13]
+
+        p = getattr(request, "_acct_params", {})
+        start = _parse_date(p.get("start"))
+        end   = _parse_date(p.get("end"))
+
+        # Default to "today" when filters are empty
+        if not start and not end:
+            today = timezone.localdate()
+            start = today
+            end   = today  # default date window [12]
+
+        # Date range
+        if start:
+            qs = qs.filter(updated_at__date__gte=start)
+        if end:
+            qs = qs.filter(updated_at__date__lte=end)
+
+        # Optional filters
+        trade = p.get("trade") or None
+        kind  = p.get("kind") or None
+        if trade:
+            qs = qs.filter(trade_id=trade)
+        if kind == "profit":
+            qs = qs.filter(profit_or_loss="Profit")
+        elif kind == "loss":
+            qs = qs.filter(profit_or_loss="Loss")
+
+        return qs  # powers both table and charts [12]

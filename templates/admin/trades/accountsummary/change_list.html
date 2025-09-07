@@ -1,0 +1,102 @@
+<p><a class="addlink" href="{% url 'admin:index' %}">HOME</a></p>
+
+
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>  <!-- Chart.js --> 
+  <!-- Top filters -->
+  <form method="get" style="display:flex; gap:12px; align-items:flex-end; margin-bottom:12px;">
+    <div><label>From</label><br><input type="date" name="start" value="{{ filters.start }}"></div>
+    <div><label>To</label><br><input type="date" name="end" value="{{ filters.end }}"></div>
+    <div>
+      <label>Granularity</label><br>
+      <select name="gran">
+        <option value="day"   {% if filters.gran == 'day' %}selected{% endif %}>Daily</option>
+        <option value="week"  {% if filters.gran == 'week' %}selected{% endif %}>Weekly</option>
+        <option value="month" {% if filters.gran == 'month' %}selected{% endif %}>Monthly</option>
+        <option value="year"  {% if filters.gran == 'year' %}selected{% endif %}>Yearly</option>
+      </select>
+    </div>
+    <div>
+      <label>Kind</label><br>
+      <select name="kind">
+        <option value=""       {% if not filters.kind %}selected{% endif %}>All</option>
+        <option value="profit" {% if filters.kind == 'profit' %}selected{% endif %}>Profit only</option>
+        <option value="loss"   {% if filters.kind == 'loss' %}selected{% endif %}>Loss only</option>
+      </select>
+    </div>
+    <div>
+      <label>Trade</label><br>
+      <select name="trade">
+        <option value="">All</option>
+        {% for t in trade_choices %}
+          <option value="{{ t.id }}" {% if filters.trade == t.id|stringformat:"s" %}selected{% endif %}>{{ t.stock_name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div><button type="submit" class="default">Apply</button></div>
+  </form>
+
+  <!-- KPI cards -->
+  <div style="display:flex; gap:16px; margin-bottom:16px;">
+    <div style="flex:1; border:1px solid #ddd; padding:12px;">
+      <div style="font-size:13px; color:#666;">Trades</div>
+      <div style="font-size:20px; font-weight:600;">{{ totals.trades|default:0 }}</div>
+    </div>
+    <div style="flex:1; border:1px solid #ddd; padding:12px;">
+      <div style="font-size:13px; color:#666;">Total Profit (₹)</div>
+      <div style="font-size:20px; color:#0a0; font-weight:600;">{{ totals.profit_total|floatformat:2 }}</div>
+    </div>
+    <div style="flex:1; border:1px solid #ddd; padding:12px;">
+      <div style="font-size:13px; color:#666;">Total Loss (₹)</div>
+      <div style="font-size:20px; color:#c00; font-weight:600;">{{ totals.loss_total|floatformat:2 }}</div>
+    </div>
+    <div style="flex:1; border:1px solid #ddd; padding:12px;">
+      <div style="font-size:13px; color:#666;">Capital (₹)</div>
+      <div style="font-size:20px; font-weight:600;">{{ totals.capital_total|floatformat:2 }}</div>
+    </div>
+  </div>
+
+  <!-- Charts -->
+  <div style="display:flex; gap:16px; margin-bottom:16px; align-items:stretch;">
+    <div style="flex:2; background:#fff; border:1px solid #ddd; padding:12px;">
+      <h3 style="margin-top:0;">Profit vs Loss by period</h3>
+      <canvas id="barChart" height="120"></canvas>
+    </div>
+    <div style="flex:1; background:#fff; border:1px solid #ddd; padding:12px;">
+      <h3 style="margin-top:0;">Trades by type</h3>
+      <canvas id="pieChart" height="120"></canvas>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const series = {{ series_json|safe }};  // prepared in changelist_view
+
+      const labels = series.map(r => r.period);
+      const profit = series.map(r => r.profit_total || 0);
+      const loss   = series.map(r => r.loss_total   || 0);
+
+      // Bar chart
+      new Chart(document.getElementById('barChart').getContext('2d'), {
+        type: 'bar',
+        data: {
+          labels,
+          datasets: [
+            { label: 'Profit (₹)', data: profit, backgroundColor: 'rgba(10,160,10,0.3)', borderColor: 'rgba(10,160,10,1)' },
+            { label: 'Loss (₹)',   data: loss,   backgroundColor: 'rgba(200,0,0,0.3)', borderColor: 'rgba(200,0,0,1)' }
+          ]
+        },
+        options: { responsive: true, scales: { y: { beginAtZero: true } } }
+      });
+
+      // Pie chart (counts by type using the current filtered queryset)
+      const profitCount = series.reduce((a,r) => a + ((r.profit_total||0) > 0 ? r.trades : 0), 0);
+      const lossCount   = series.reduce((a,r) => a + ((r.loss_total||0)   > 0 ? r.trades : 0), 0);
+      new Chart(document.getElementById('pieChart').getContext('2d'), {
+        type: 'pie',
+        data: { labels: ['Profit', 'Loss'], datasets: [{ data: [profitCount, lossCount], backgroundColor: ['#0a0','#c00'] }] },
+        options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+      });
+    });
+  </script>
+
