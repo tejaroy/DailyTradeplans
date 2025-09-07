@@ -1,0 +1,83 @@
+<style>
+  .cell  { border:2px solid #000; padding:6px; }
+  .green { color:#0a0; font-weight:600; }
+  .red   { color:#c00; font-weight:600; }
+  .green input { color:#0a0; font-weight:600; }
+  .red   input { color:#c00; font-weight:600; }
+</style>
+
+  <p><a class="addlink" href="{% url 'admin:index' %}">HOME</a></p>
+
+  <h2>Trade Transactions - {{ end|date:"Y-m-d" }}</h2>
+
+  <form method="get" style="margin:10px 0;">
+    <label>From:</label>
+    <input type="date" name="start" value="{{ start|date:'Y-m-d' }}">
+    <label>To:</label>
+    <input type="date" name="end" value="{{ end|date:'Y-m-d' }}">
+    <button type="submit">Apply</button>
+  </form>
+
+  <h3>Add transaction</h3>
+<form method="post" novalidate style="margin-bottom:16px;">
+  {% csrf_token %}
+  <input type="hidden" name="action" value="add">
+  <table style="border-collapse:collapse; width:100%; margin-bottom:10px;">
+    <thead>
+      <tr>
+        <th style="border:2px solid #000; padding:6px;">Ticker</th>
+        <th style="border:2px solid #000; padding:6px;">Buy</th>
+        <th style="border:2px solid #000; padding:6px;">Sell</th>
+        <th style="border:2px solid #000; padding:6px;">Qty</th>
+        <th style="border:2px solid #000; padding:6px;">Action</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td style="border:2px solid #000; padding:6px; min-width:220px;">{{ add_form.trade }}</td>
+        <td style="border:2px solid #000; padding:6px; min-width:110px;">{{ add_form.buy_price }}</td>
+        <td style="border:2px solid #000; padding:6px; min-width:110px;">{{ add_form.sell_price }}</td>
+        <td style="border:2px solid #000; padding:6px; min-width:80px;">{{ add_form.quantity }}</td>
+        <td style="border:2px solid #000; padding:6px;"><button type="submit" class="default">Add</button></td>
+      </tr>
+    </tbody>
+  </table>
+  {% if add_form.errors %}<div class="errors">{{ add_form.errors }}</div>{% endif %}
+</form>
+
+
+<h3>Transactions</h3>
+
+<table style="border-collapse:collapse; width:100%;">
+  <thead>
+    <tr>
+      <th style="border:2px solid #000; padding:6px;">Ticker</th>
+      <th style="border:2px solid #000; padding:6px;">Option Strike Price Expiry</th>
+      <th style="border:2px solid #000; padding:6px;">Buy</th>
+      <th style="border:2px solid #000; padding:6px;">Sell</th>
+      <th style="border:2px solid #000; padding:6px;">Qty</th>
+      <th style="border:2px solid #000; padding:6px;">Profit</th>
+        <th style="border:2px solid #000; padding:6px;">Loss</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for tx in rows %}
+      <tr>
+        <td style="border:2px solid #000; padding:6px;">{{ tx.trade.stock_name }}</td>
+        <td style="border:2px solid #000; padding:6px;">{{ tx.trade.option_strike_price_expiry }}</td>
+        <td style="border:2px solid #000; padding:6px;">{{ tx.buy_price }}</td>
+        <td style="border:2px solid #000; padding:6px;">{{ tx.sell_price }}</td>
+        <td style="border:2px solid #000; padding:6px;">{{ tx.quantity }}</td>
+        <td class="cell {% if tx.profit_amount %}green{% endif %}">
+            {% if tx.profit_amount %}{{ tx.profit_amount }}{% endif %}
+        </td>
+        <td class="cell {% if tx.loss_amount %}red{% endif %}">
+        {% if tx.loss_amount %}{{ tx.loss_amount }}{% endif %}
+        </td>
+      </tr>
+    {% empty %}
+      <tr><td colspan="7" style="border:2px solid #000; padding:6px;">No transactions.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+

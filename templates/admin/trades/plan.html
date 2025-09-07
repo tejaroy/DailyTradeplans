@@ -1,0 +1,80 @@
+<style>
+  .cell  { border:2px solid #000; padding:6px; }
+  .green { color:#0a0; font-weight:600; }
+  .red   { color:#c00; font-weight:600; }
+</style>
+
+  
+  <p><a class="addlink" href="{% url 'admin:index' %}">HOME</a></p>
+
+  <h2>Daily Trading Plan - {{ end|date:"Y-m-d" }}</h2>
+
+  <form method="get" style="margin:10px 0;">
+    <label>From:</label>
+    <input type="date" name="start" value="{{ start|date:'Y-m-d' }}">
+    <label>To:</label>
+    <input type="date" name="end" value="{{ end|date:'Y-m-d' }}">
+    <button type="submit">Apply</button>
+  </form>
+
+  <form method="post" novalidate>
+    <!-- {% csrf_token %} -->
+    <!-- {{ formset.management_form }} {# required for formsets #} -->
+
+    <table style="border-collapse:collapse; width:100%;">
+  <thead>
+    <tr>
+      <th style="border:2px solid #000; padding:6px;">Ticker</th>
+      <th style="border:2px solid #000; padding:6px;">Option (Strike/Expiry)</th>
+      <th style="border:2px solid #000; padding:6px;">Entry</th>
+      <th style="border:2px solid #000; padding:6px;">Stop Loss</th>
+      <th style="border:2px solid #000; padding:6px;">Target</th>
+      <th style="border:2px solid #000; padding:6px;">Risk/Share</th>
+      <th style="border:2px solid #000; padding:6px;">Qty</th>
+      <th style="border:2px solid #000; padding:6px;">Capital Required</th>
+      <th style="border:2px solid #000; padding:6px;">Max Loss (₹)</th>
+      <th style="border:2px solid #000; padding:6px;">Max Profit (₹)</th>
+      <th style="border:2px solid #000; padding:6px;">Support</th>
+      <th style="border:2px solid #000; padding:6px;">Resistance</th>
+      <th style="border:2px solid #000; padding:6px;">P/L</th>
+      <th style="border:2px solid #000; padding:6px;">Profit Amt</th>
+      <th style="border:2px solid #000; padding:6px;">Loss Amt</th>
+      <th style="border:2px solid #000; padding:6px;">Created</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for form in formset %}
+      {% with t=form.instance.trade tx=form.instance %}
+      <tr>
+        <td style="border:2px solid #000; padding:6px;">{{ t.stock_name }}</td>
+        <td style="border:2px solid #000; padding:6px;">{{ t.option_strike_price_expiry }}</td>
+        <td style="border:2px solid #000; padding:6px;">{{ t.option_buy_price|floatformat:2 }}</td>
+        <td style="border:2px solid #000; padding:6px;">{{ t.stop_loss_price|floatformat:2 }}</td>
+        <td style="border:2px solid #000; padding:6px;">{{ t.intraday_exit_price_target|floatformat:2 }}</td>
+        <td style="border:2px solid #000; padding:6px;">{{ tx.risk_per_share|floatformat:2 }}</td>
+        <td style="border:2px solid #000; padding:6px;">{{ tx.qty|floatformat:0 }}</td>
+        <td style="border:2px solid #000; padding:6px;">{{ t.capital_required|floatformat:2 }}</td>
+        <td style="border:2px solid #000; padding:6px;">{{ t.max_loss_if_stop_loss_hits|floatformat:2 }}</td>
+        <td style="border:2px solid #000; padding:6px;">{{ t.max_profit_if_target_hits|floatformat:2 }}</td>
+        <td style="border:2px solid #000; padding:6px;">{{ t.support_level }}</td>
+        <td style="border:2px solid #000; padding:6px;">{{ t.resistance_level }}</td>
+        <td style="border:2px solid #000; padding:6px;"
+          class="{% if tx.profit_or_loss == 'Profit' %}green{% elif tx.profit_or_loss == 'Loss' %}red{% endif %}">
+          {% if tx.profit_or_loss %}{{ tx.profit_or_loss }}{% endif %}
+        </td>
+        <td class="cell {% if tx.profit_amount and tx.profit_amount > 0 %}green{% endif %}">
+          {% if tx.profit_amount != None %}{{ tx.profit_amount|floatformat:2 }}{% endif %}
+        </td>
+        <td class="cell {% if tx.loss_amount and tx.loss_amount > 0 %}red{% endif %}">
+          {% if tx.loss_amount != None %}{{ tx.loss_amount|floatformat:2 }}{% endif %}
+        </td>
+        <td style="border:2px solid #000; padding:6px;">{{ t.created_at|date:"j/n/Y" }}</td>
+      </tr>
+      {% endwith %}
+    {% empty %}
+      <tr><td colspan="16" style="border:2px solid #000; padding:6px;">No data.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+  </form>
+

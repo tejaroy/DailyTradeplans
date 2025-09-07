@@ -1,0 +1,76 @@
+{% extends "admin/base_site.html" %}
+{% load humanize %}
+{% block content %}
+  <h2>Daily Trading Plan - {{ end|date:"j/n/Y" }}</h2>
+
+  <form method="get" style="margin:10px 0;">
+    <label>From:</label>
+    <input type="date" name="start" value="{{ start|date:'Y-m-d' }}">
+    <label>To:</label>
+    <input type="date" name="end" value="{{ end|date:'Y-m-d' }}">
+    <button type="submit">Apply</button>
+  </form>
+
+  <form method="post" novalidate>
+    {% csrf_token %}
+    {{ formset.management_form }}
+
+    <table style="border-collapse:collapse; width:100%;">
+      <thead>
+        <tr>
+          <th style="border:2px solid #000; padding:6px;">Ticker</th>
+          <th style="border:2px solid #000; padding:6px;">Option (Strike/Expiry)</th>
+          <th style="border:2px solid #000; padding:6px;">Entry</th>
+          <th style="border:2px solid #000; padding:6px;">Stop Loss</th>
+          <th style="border:2px solid #000; padding:6px;">Target</th>
+          <th style="border:2px solid #000; padding:6px;">Risk/Share</th>
+          <th style="border:2px solid #000; padding:6px;">Qty</th>
+          <th style="border:2px solid #000; padding:6px;">Capital Required</th>
+          <th style="border:2px solid #000; padding:6px;">Max Loss (₹)</th>
+          <th style="border:2px solid #000; padding:6px;">Max Profit (₹)</th>
+          <th style="border:2px solid #000; padding:6px;">Support</th>
+          <th style="border:2px solid #000; padding:6px;">Resistance</th>
+          <th style="border:2px solid #000; padding:6px;">P/L</th>
+          <th style="border:2px solid #000; padding:6px;">Profit Amt</th>
+          <th style="border:2px solid #000; padding:6px;">Loss Amt</th>
+          <!-- <th style="border:2px solid #000; padding:6px;">Catalyst</th> -->
+          <th style="border:2px solid #000; padding:6px;">Created</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for form in formset %}
+          {% with r=form.instance %}
+          <tr>
+            {{ form.id }} {# hidden PK required when manually rendering fields #}
+            <td style="border:2px solid #000; padding:6px;">{{ r.stock_name }}</td>
+            <td style="border:2px solid #000; padding:6px;">{{ r.option_strike_price_expiry }}</td>
+            <td style="border:2px solid #000; padding:6px;">{{ r.option_buy_price|floatformat:2 }}</td>
+            <td style="border:2px solid #000; padding:6px;">{{ r.stop_loss_price|floatformat:2 }}</td>
+            <td style="border:2px solid #000; padding:6px;">{{ r.intraday_exit_price_target|floatformat:2 }}</td>
+            <td style="border:2px solid #000; padding:6px;">{{ r.risk_per_share|floatformat:2 }}</td>
+            <td style="border:2px solid #000; padding:6px;">{{ r.qty|floatformat:0 }}</td>
+            <td style="border:2px solid #000; padding:6px;">{{ r.capital_required|floatformat:2 }}</td>
+            <td style="border:2px solid #000; padding:6px;">{{ r.max_loss_if_stop_loss_hits|floatformat:2 }}</td>
+            <td style="border:2px solid #000; padding:6px;">{{ r.max_profit_if_target_hits|floatformat:2 }}</td>
+            <td style="border:2px solid #000; padding:6px;">{{ r.support_level }}</td>
+            <td style="border:2px solid #000; padding:6px;">{{ r.resistance_level }}</td>
+
+            <td style="border:2px solid #000; padding:6px; min-width:100px;">{{ form.profit_or_loss }}</td>
+            <td style="border:2px solid #000; padding:6px; min-width:110px;">{{ form.profit_amount }}</td>
+            <td style="border:2px solid #000; padding:6px; min-width:110px;">{{ form.loss_amount }}</td>
+
+            <!-- <td style="border:2px solid #000; padding:6px;">{{ r.news_catalyst_summary }}</td> -->
+            <td style="border:2px solid #000; padding:6px;">{{ r.created_at|date:"j/n/Y" }}</td>
+          </tr>
+          {% endwith %}
+        {% empty %}
+          <tr><td colspan="17" style="border:2px solid #000; padding:6px;">No data for selected dates.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <div style="margin-top:10px;">
+      <button type="submit" class="default">Save changes</button>
+    </div>
+  </form>
+{% endblock %}

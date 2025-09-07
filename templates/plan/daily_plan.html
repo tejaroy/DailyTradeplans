@@ -1,0 +1,59 @@
+{% load humanize %}
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Daily Trading Plan</title>
+  <style>
+    body { font-family: Arial, sans-serif; }
+    table { border-collapse: collapse; width: 100%; }
+    th, td { border: 2px solid #000; padding: 8px; text-align: left; }
+    th { background: #f3f3f3; }
+  </style>
+</head>
+<body>
+  <h2>Daily Trading Plan - {{ heading_date }}</h2>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Ticker</th>
+        <th>Entry</th>
+        <th>Stop Loss</th>
+        <th>Target</th>
+        <th>Risk/Share</th>
+        <th>Qty</th>
+        <th>Max Profit (₹)</th>
+        <th>Catalyst</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in rows %}
+      <tr>
+        <td>{{ r.stock_name }}</td>
+        <td>{{ r.option_buy_price|floatformat:2 }}</td>
+        <td>{{ r.stop_loss_price|floatformat:2 }}</td>
+        <td>{{ r.intraday_exit_price_target|floatformat:2 }}</td>
+        <td>{{ r.risk_per_share|floatformat:2 }}</td>
+        <td>{{ r.raw_qty|floatformat:0 }}</td>
+        <td>{{ r.max_profit_if_target_hits|floatformat:2 }}</td>
+        <td>{{ r.news_catalyst_summary }}</td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="8">No data for selected filters.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  {% if is_paginated %}
+    <div>
+      {% if page_obj.has_previous %}
+        <a href="?page={{ page_obj.previous_page_number }}&{{ request.GET.urlencode }}">Previous</a>
+      {% endif %}
+      <span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+      {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}&{{ request.GET.urlencode }}">Next</a>
+      {% endif %}
+    </div>
+  {% endif %}
+</body>
+</html>

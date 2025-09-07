@@ -1,0 +1,46 @@
+{% extends "admin/change_form.html" %}
+
+{% block extrahead %}
+  {{ block.super }}
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>  <!-- Chart.js --> 
+{% endblock %}
+
+{% block content %}
+  <!-- KPIs -->
+  <div style="display:flex; gap:16px; margin-bottom:16px;">
+    <div style="flex:1; border:1px solid #ddd; padding:12px;">
+      <div style="font-size:13px; color:#666;">Profit Amt</div>
+      <div style="font-size:20px; color:#0a0; font-weight:600;">₹ {{ kpi_profit|floatformat:2 }}</div>
+    </div>
+    <div style="flex:1; border:1px solid #ddd; padding:12px;">
+      <div style="font-size:13px; color:#666;">Loss Amt</div>
+      <div style="font-size:20px; color:#c00; font-weight:600;">₹ {{ kpi_loss|floatformat:2 }}</div>
+    </div>
+  </div>
+
+  <!-- Per-record pie -->
+  <div style="background:#fff; border:1px solid #ddd; padding:12px; margin-bottom:16px;">
+    <h3 style="margin-top:0;">This Record: Profit vs Loss</h3>
+    <canvas id="tplPie" height="120"></canvas>
+  </div>
+
+  {{ block.super }}  <!-- renders the default change form fields/buttons -->
+{% endblock %}
+
+{% block admin_change_form_document_ready %}
+  {{ block.super }}
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const cfg = {{ tpl_pie|safe }};  // {"labels":["Profit","Loss"],"data":[...],"colors":[...]} 
+      const ctx = document.getElementById('tplPie').getContext('2d');
+      new Chart(ctx, {
+        type: 'pie',
+        data: {
+          labels: cfg.labels,
+          datasets: [{ data: cfg.data, backgroundColor: cfg.colors }]
+        },
+        options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+      });  // Chart.js in admin change form
+    });
+  </script>
+{% endblock %}

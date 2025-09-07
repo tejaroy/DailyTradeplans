@@ -1,0 +1,5 @@
+{% extends "admin/change_list.html" %}
+{% block object-tools-items %}
+  {{ block.super }}
+  <li><a class="addlink" href="{{ upload_url }}">Upload Excel/CSV</a></li>
+{% endblock %}

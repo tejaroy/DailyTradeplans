@@ -1,0 +1,33 @@
+
+  <p><a class="addlink" href="{% url 'admin:index' %}">HOME</a></p>
+
+  <h2>Trade News - {{ end|date:"Y-m-d" }}</h2>
+
+  <form method="get" style="margin:10px 0;">
+    <label>From:</label>
+    <input type="date" name="start" value="{{ start|date:'Y-m-d' }}">
+    <label>To:</label>
+    <input type="date" name="end" value="{{ end|date:'Y-m-d' }}">
+    <button type="submit">Apply</button>
+  </form>
+
+  <table style="border-collapse:collapse; width:100%;">
+    <thead>
+      <tr>
+        <th style="border:2px solid #000; padding:6px;">Ticker</th>
+        <th style="border:2px solid #000; padding:6px;">Trade News</th>
+        <th style="border:2px solid #000; padding:6px;">Created</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for t in rows %}
+        <tr>
+          <td style="border:2px solid #000; padding:6px;">{{ t.stock_name }}</td>
+          <td style="border:2px solid #000; padding:6px; min-width:420px;">{{ t.news_catalyst_summary }}</td>
+          <td style="border:2px solid #000; padding:6px;">{{ t.created_at|date:"j/n/Y" }}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="3" style="border:2px solid #000; padding:6px;">No data.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>

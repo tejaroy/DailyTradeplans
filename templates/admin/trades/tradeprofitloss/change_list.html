@@ -1,0 +1,26 @@
+{# templates/admin/trades/tradeprofitloss/change_list.html #}
+{% extends "admin/change_list.html" %}
+
+{% block content %}
+  <!-- <p><a class="addlink" href="{% url 'admin:index' %}">HOME</a></p> -->
+
+  <!-- Custom GET filters: From/To/Trade -->
+  <form method="get" style="display:flex; gap:12px; align-items:flex-end; margin-bottom:12px;">
+    <div><label>From</label><br><input type="date" name="start" value="{{ request.GET.start }}"></div>
+    <div><label>To</label><br><input type="date" name="end" value="{{ request.GET.end }}"></div>
+    <div>
+      <label>Trade</label><br>
+      <select name="trade">
+        <option value="">All</option>
+        {% for t in trade_choices %}
+          <option value="{{ t.id }}" {% if request.GET.trade == t.id|stringformat:"s" %}selected{% endif %}>
+            {{ t.stock_name }}
+          </option>
+        {% endfor %}
+      </select>
+    </div>
+    <div><button type="submit" class="default">Apply</button></div>
+  </form>
+
+  {{ block.super }}  {# renders the default filtered table and sidebar list_filter #}
+{% endblock %}

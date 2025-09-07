@@ -1,0 +1,35 @@
+{# templates/admin/index.html #}
+{% extends "admin/index.html" %}
+{% block content %}
+  <div class="module">
+    <h2>Tools</h2>
+    <ul class="object-tools">
+      <li><a class="addlink" href="{% url 'admin:trades_upload' %}">Upload Excel/CSV</a></li>
+    </ul>
+    <div class="module" style="margin-top:12px;">
+  <table style="border-collapse:collapse; width:100%;">
+    <tbody>
+      <tr class="model-group">
+        <td style="border:2px solid #000; padding:6px;">
+          <a href="{% url 'admin:trades_plan' %}">Trade Master</a>
+        </td>
+      </tr>
+      <tr class="model-group">
+        <td style="border:2px solid #000; padding:6px;">
+          <a href="{% url 'admin:trades_news' %}">Trade News</a>
+        </td>
+      </tr>
+      <tr class="model-group">
+        <td style="border:2px solid #000; padding:6px;">
+          <a href="{% url 'admin:trades_transactions' %}">Trade Transactions</a>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+  </div>
+  {{ block.super }}
+{% endblock %}
+
+
