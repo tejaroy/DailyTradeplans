@@ -80,12 +80,22 @@ WSGI_APPLICATION = 'stock_trades.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/3.2/ref/settings/#databases
 
+# postgresql://teja_db_user:oIkPFddIkU9ILOhcbt05Dv5dkiNjvl8Z@dpg-d2vjpindiees738f3r8g-a.oregon-postgres.render.com/teja_db
+
+# settings.py
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
+  "default": {
+    "ENGINE": "django.db.backends.postgresql",
+    "NAME": "teja_db",
+    "USER": "teja_db_user",
+    "PASSWORD": "oIkPFddIkU9ILOhcbt05Dv5dkiNjvl8Z",
+    "HOST": "pg-d2vjpindiees738f3r8g-a.oregon-postgres.render.com",
+    "PORT": "5432",
+    "CONN_MAX_AGE": 600,
+  }
 }
+
+
 
 
 # Password validation
