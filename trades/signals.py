@@ -17,7 +17,7 @@ def propagate_tpl(sender, instance: TradeTransaction, created, **kwargs):
     # Recompute NET across all TX rows for this trade+user after commit
     def _upsert():
         expr = ExpressionWrapper(
-            (F('sell_price') - F('buy_price')) * SCALE,
+            (F('sell_price') - F('buy_price')) * F('quantity'),
             output_field=DecimalField(max_digits=18, decimal_places=2),
         )  # (sell - buy) * 100 in the DB [1][4]
 
