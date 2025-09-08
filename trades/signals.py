@@ -43,3 +43,4 @@ def propagate_tpl(sender, instance: TradeTransaction, created, **kwargs):
         )  # single per-(trade,user) row reflects the net [23]
 
     transaction.on_commit(_upsert)  # run only after TX is durable [22]
+
